@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>WebAR Multi-Geometry 3D with Formula Display</title>
+  
+  <!-- A-Frame & AR.js -->
+  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    
+    #ui-container {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 92%;
+      max-width: 420px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 12px 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    .title-bar {
+      font-weight: bold;
+      font-size: 15px;
+      color: #1e293b;
+      text-align: center;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 4px;
+    }
+
+    .select-box, input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 13px;
+      box-sizing: border-box;
+    }
+
+    /* สไตล์สำหรับแถบแสดงสูตร */
+    .formula-card {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      padding: 8px 12px;
+      text-align: center;
+    }
+
+    .formula-title {
+      font-size: 11px;
+      font-weight: bold;
+      color: #1d4ed8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .formula-text {
+      font-size: 14px;
+      font-weight: bold;
+      color: #1e40af;
+      margin: 2px 0;
+    }
+
+    .formula-desc {
+      font-size: 11px;
+      color: #3b82f6;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 6px;
+    }
+
+    .action-btn {
+      flex: 1;
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .action-btn:active {
+      opacity: 0.9;
+    }
+
+    .quiz-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .quiz-title {
+      font-weight: bold;
+      color: #0f172a;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .quiz-text {
+      font-size: 12px;
+      color: #334155;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .feedback {
+      font-weight: bold;
+      font-size: 13px;
+      text-align: center;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+
+<body style="margin: 0px; overflow: hidden;">
+
+  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" renderer="logarithmicDepthBuffer: true; colorManagement: true;">
+    <a-marker preset="hiro">
+      <a-entity id="main-group" position="0 0 0" scale="0.8 0.8 0.8">
+        
+        <!-- 1. ปริซึมสี่เหลี่ยม / ลูกบาศก์ -->
+        <a-entity id="shape-cube" visible="true">
+          <a-plane position="0 0 0" rotation="-90 0 0" width="1" height="1" color="#3b82f6" material="side: double; opacity: 0.85;"></a-plane>
+          <a-entity id="c-front" position="0 0 0.5"><a-plane position="0 0 0.5" rotation="-90 0 0" width="1" height="1" color="#ef4444" material="side: double; opacity: 0.85;"></a-plane></a-entity>
+          <a-entity id="c-back" position="0 0 -0.5"><a-plane position="0 0 -0.5" rotation="-90 0 0" width="1" height="1" color="#10b981" material="side: double; opacity: 0.85;"></a-plane></a-entity>
+          <a-entity id="c-left" position="-0.5 0 0"><a-plane position="-0.5 0 0" rotation="-90 0 0" width="1" height="1" color="#f59e0b" material="side: double; opacity: 0.85;"></a-plane></a-entity>
+          <a-entity id="c-right" position="0.5 0 0"><a-plane position="0.5 0 0" rotation="-90 0 0" width="1" height="1" color="#8b5cf6" material="side: double; opacity: 0.85;"></a-plane></a-entity>
+          <a-entity id="c-top" position="1 0 0"><a-plane position="0.5 0 0" rotation="-90 0 0" width="1" height="1" color="#ec4899" material="side: double; opacity: 0.85;"></a-plane></a-entity>
+        </a-entity>
+
+        <!-- 2. ปริซึมสามเหลี่ยม -->
+        <a-entity id="shape-tri-prism" visible="false">
+          <a-plane position="0 0 0" rotation="-90 0 0" width="1" height="1" color="#3b82f6" material="side: double; opacity: 0.85;"></a-plane>
+          <a-entity id="tp-left" position="-0.5 0 0"><a-plane position="-0.5 0 0" rotation="-90 0 0" width="1" height="1" color="#f59e0b" material="side: double; opacity: 0.85;"></a-plane></a-entity>
+          <a-entity id="tp-right" position="0.5 0 0"><a-plane position="0.5 0 0" rotation="-90 0 0" width="1" height="1" color="#8b5cf6" material="side: double; opacity: 0.85;"></a-plane></a-entity>
+          <a-entity id="tp-front" position="0 0 0.5"><a-triangle vertex-a="0 0.866 0" vertex-b="-0.5 0 0" vertex-c="0.5 0 0" color="#ef4444" material="side: double; opacity: 0.85;"></a-triangle></a-entity>
+          <a-entity id="tp-back" position="0 0 -0.5"><a-triangle vertex-a="0 0.866 0" vertex-b="0.5 0 0" vertex-c="-0.5 0 0" color="#10b981" material="side: double; opacity: 0.85;"></a-triangle></a-entity>
+        </a-entity>
+
+        <!-- 3. พีระมิดฐานสี่เหลี่ยม -->
+        <a-entity id="shape-pyramid" visible="false">
+          <a-plane position="0 0 0" rotation="-90 0 0" width="1" height="1" color="#3b82f6" material="side: double; opacity: 0.85;"></a-plane>
+          <a-entity id="pyr-1" position="0 0 0.5"><a-triangle vertex-a="0 1 0" vertex-b="-0.5 0 0" vertex-c="0.5 0 0" color="#ef4444" material="side: double; opacity: 0.85;"></a-triangle></a-entity>
+          <a-entity id="pyr-2" position="0 0 -0.5"><a-triangle vertex-a="0 1 0" vertex-b="0.5 0 0" vertex-c="-0.5 0 0" color="#10b981" material="side: double; opacity: 0.85;"></a-triangle></a-entity>
+          <a-entity id="pyr-3" position="-0.5 0 0"><a-triangle vertex-a="0 1 0" vertex-b="0 0 0.5" vertex-c="0 0 -0.5" color="#f59e0b" material="side: double; opacity: 0.85;"></a-triangle></a-entity>
+          <a-entity id="pyr-4" position="0.5 0 0"><a-triangle vertex-a="0 1 0" vertex-b="0 0 -0.5" vertex-c="0 0 0.5" color="#8b5cf6" material="side: double; opacity: 0.85;"></a-triangle></a-entity>
+        </a-entity>
+
+        <!-- 4. ทรงกระบอก -->
+        <a-entity id="shape-cylinder" visible="false">
+          <a-cylinder id="cyl-body" position="0 0.5 0" radius="0.5" height="1" color="#06b6d4" material="opacity: 0.85;"></a-cylinder>
+        </a-entity>
+
+        <!-- 5. ทรงกรวย -->
+        <a-entity id="shape-cone" visible="false">
+          <a-cone id="cone-body" position="0 0.5 0" radius-bottom="0.5" radius-top="0" height="1" color="#ec4899" material="opacity: 0.85;"></a-cone>
+        </a-entity>
+
+      </a-entity>
+    </a-marker>
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <!-- Control UI Overlay -->
+  <div id="ui-container">
+    <div class="title-bar">📐 สื่อเรียนรู้ AR รูปทรง 3 มิติ & รูปคลี่</div>
+    
+    <label style="font-size: 12px; font-weight: bold; color: #475569;">เลือกรูปทรงที่ต้องการเรียนรู้:</label>
+    <select id="shape-select" class="select-box" onchange="changeShape()">
+      <option value="cube">1. ปริซึมสี่เหลี่ยม / ทรงลูกบาศก์</option>
+      <option value="tri-prism">2. ปริซึมสามเหลี่ยม</option>
+      <option value="pyramid">3. พีระมิดฐานสี่เหลี่ยม</option>
+      <option value="cylinder">4. ทรงกระบอก</option>
+      <option value="cone">5. ทรงกรวย</option>
+    </select>
+
+    <!-- แถบแสดงสูตรคำนวณ -->
+    <div class="formula-card">
+      <div class="formula-title">💡 สูตรคำนวณปริมาตร</div>
+      <div class="formula-text" id="formula-text">กว้าง × ยาว × สูง</div>
+      <div class="formula-desc" id="formula-desc">(พื้นที่ฐาน × ความสูง)</div>
+    </div>
+
+    <div class="btn-group">
+      <button class="action-btn" id="fold-btn" onclick="toggleFold()">🔄 พับ / คลี่รูปทรง</button>
+      <button class="action-btn" style="background:#059669;" onclick="generateQuiz()">🎲 สุ่มโจทย์ใหม่</button>
+    </div>
+
+    <!-- ส่วนโจทย์คำถาม -->
+    <div class="quiz-card">
+      <div class="quiz-title">🎯 โจทย์ทดสอบความเข้าใจ:</div>
+      <div class="quiz-text" id="quiz-question">กำลังโหลดโจทย์...</div>
+      
+      <div style="display: flex; gap: 6px;">
+        <input type="number" id="user-answer" placeholder="ใส่คำตอบ (ลบ.ซม.)">
+        <button class="action-btn" style="width: 80px;" onclick="checkAnswer()">ส่ง</button>
+      </div>
+      <div class="feedback" id="feedback-text"></div>
+    </div>
+  </div>
+
+  <script>
+    let currentShape = 'cube';
+    let isFolded = false;
+    let correctAnswer = 0;
+
+    // ข้อมูลสูตรคำนวณของแต่ละรูปทรง
+    const formulaData = {
+      'cube': {
+        formula: 'กว้าง × ยาว × สูง',
+        desc: 'ปริมาตร = พื้นที่ฐาน × สูง'
+      },
+      'tri-prism': {
+        formula: '(1/2 × ฐาน × สูงสามเหลี่ยม) × ยาว',
+        desc: 'ปริมาตร = พื้นที่ฐานสามเหลี่ยม × ความยาวปริซึม'
+      },
+      'pyramid': {
+        formula: '1/3 × พื้นที่ฐาน × สูง',
+        desc: 'ปริมาตร = 1/3 × (กว้าง × ยาว) × สูง'
+      },
+      'cylinder': {
+        formula: 'π × r² × h',
+        desc: 'ปริมาตร = π × (รัศมี)² × สูง (π ≈ 3.14)'
+      },
+      'cone': {
+        formula: '1/3 × π × r² × h',
+        desc: 'ปริมาตร = 1/3 × π × (รัศมี)² × สูง (π ≈ 3.14)'
+      }
+    };
+
+    // สลับการแสดงผลรูปทรง และอัปเดตแถบสูตร
+    function changeShape() {
+      currentShape = document.getElementById('shape-select').value;
+      
+      const shapes = ['cube', 'tri-prism', 'pyramid', 'cylinder', 'cone'];
+      shapes.forEach(s => {
+        document.getElementById(`shape-${s}`).setAttribute('visible', s === currentShape);
+      });
+
+      // อัปเดตข้อความสูตรคำนวณ
+      if (formulaData[currentShape]) {
+        document.getElementById('formula-text').innerText = formulaData[currentShape].formula;
+        document.getElementById('formula-desc').innerText = formulaData[currentShape].desc;
+      }
+
+      isFolded = false;
+      resetAnimations();
+      generateQuiz();
+    }
+
+    // ระบบแอนิเมชันพับ-คลี่
+    function toggleFold() {
+      isFolded = !isFolded;
+
+      if (currentShape === 'cube') {
+        document.getElementById('c-front').setAttribute('animation', `property: rotation; to: ${isFolded ? -90 : 0} 0 0; dur: 1000`);
+        document.getElementById('c-back').setAttribute('animation', `property: rotation; to: ${isFolded ? 90 : 0} 0 0; dur: 1000`);
+        document.getElementById('c-left').setAttribute('animation', `property: rotation; to: 0 0 ${isFolded ? -90 : 0}; dur: 1000`);
+        document.getElementById('c-right').setAttribute('animation', `property: rotation; to: 0 0 ${isFolded ? 90 : 0}; dur: 1000`);
+        document.getElementById('c-top').setAttribute('animation', `property: rotation; to: 0 0 ${isFolded ? 90 : 0}; dur: 1000`);
+      } 
+      else if (currentShape === 'tri-prism') {
+        document.getElementById('tp-left').setAttribute('animation', `property: rotation; to: 0 0 ${isFolded ? -60 : 0}; dur: 1000`);
+        document.getElementById('tp-right').setAttribute('animation', `property: rotation; to: 0 0 ${isFolded ? 60 : 0}; dur: 1000`);
+        document.getElementById('tp-front').setAttribute('animation', `property: rotation; to: ${isFolded ? -90 : 0} 0 0; dur: 1000`);
+        document.getElementById('tp-back').setAttribute('animation', `property: rotation; to: ${isFolded ? 90 : 0} 0 0; dur: 1000`);
+      }
+      else if (currentShape === 'pyramid') {
+        document.getElementById('pyr-1').setAttribute('animation', `property: rotation; to: ${isFolded ? -60 : 0} 0 0; dur: 1000`);
+        document.getElementById('pyr-2').setAttribute('animation', `property: rotation; to: ${isFolded ? 60 : 0} 0 0; dur: 1000`);
+        document.getElementById('pyr-3').setAttribute('animation', `property: rotation; to: 0 0 ${isFolded ? -60 : 0}; dur: 1000`);
+        document.getElementById('pyr-4').setAttribute('animation', `property: rotation; to: 0 0 ${isFolded ? 60 : 0}; dur: 1000`);
+      }
+    }
+
+    function resetAnimations() {
+      const ids = [
+        'c-front', 'c-back', 'c-left', 'c-right', 'c-top',
+        'tp-left', 'tp-right', 'tp-front', 'tp-back',
+        'pyr-1', 'pyr-2', 'pyr-3', 'pyr-4'
+      ];
+      ids.forEach(id => {
+        let el = document.getElementById(id);
+        if (el) el.setAttribute('rotation', '0 0 0');
+      });
+    }
+
+    // ระบบสุ่มโจทย์ตามสูตรของแต่ละรูปทรง
+    function generateQuiz() {
+      document.getElementById('user-answer').value = '';
+      document.getElementById('feedback-text').innerText = '';
+      
+      let w = Math.floor(Math.random() * 5) + 2;
+      let l = Math.floor(Math.random() * 5) + 2;
+      let h = Math.floor(Math.random() * 6) + 3;
+      let r = Math.floor(Math.random() * 3) + 2;
+      let b = Math.floor(Math.random() * 4) + 3;
+
+      if (currentShape === 'cube') {
+        correctAnswer = w * l * h;
+        document.getElementById('quiz-question').innerText = `ปริซึมสี่เหลี่ยมมีความกว้าง ${w} ซม., ยาว ${l} ซม. และสูง ${h} ซม. มีปริมาตรเท่าใด?`;
+      } 
+      else if (currentShape === 'tri-prism') {
+        let triArea = 0.5 * b * h;
+        correctAnswer = Math.round(triArea * l);
+        document.getElementById('quiz-question').innerText = `ปริซึมสามเหลี่ยมมีฐานยาว ${b} ซม., สูงสามเหลี่ยม ${h} ซม. และความยาวปริซึม ${l} ซม. มีปริมาตรเท่าใด?`;
+      }
+      else if (currentShape === 'pyramid') {
+        let baseArea = w * w;
+        correctAnswer = Math.round((1/3) * baseArea * h);
+        document.getElementById('quiz-question').innerText = `พีระมิดฐานสี่เหลี่ยมจัตุรัสยาวด้านละ ${w} ซม. และสูง ${h} ซม. มีปริมาตรกี่ ลบ.ซม.? (ปัดเป็นจำนวนเต็ม)`;
+      } 
+      else if (currentShape === 'cylinder') {
+        correctAnswer = Math.round(3.14 * r * r * h);
+        document.getElementById('quiz-question').innerText = `ทรงกระบอกมีรัศมี ${r} ซม. และสูง ${h} ซม. มีปริมาตรเท่าใด? (กำหนด π ≈ 3.14, ปัดเป็นจำนวนเต็ม)`;
+      }
+      else if (currentShape === 'cone') {
+        correctAnswer = Math.round((1/3) * 3.14 * r * r * h);
+        document.getElementById('quiz-question').innerText = `ทรงกรวยมีรัศมี ${r} ซม. และสูง ${h} ซม. มีปริมาตรเท่าใด? (กำหนด π ≈ 3.14, ปัดเป็นจำนวนเต็ม)`;
+      }
+    }
+
+    // ระบบตรวจคำตอบ
+    function checkAnswer() {
+      let userAns = parseFloat(document.getElementById('user-answer').value);
+      let feedback = document.getElementById('feedback-text');
+      
+      if (isNaN(userAns)) {
+        feedback.style.color = '#eab308';
+        feedback.innerText = '⚠️ กรุณากรอกตัวเลขคำตอบก่อนส่งครับ';
+        return;
+      }
+
+      if (Math.abs(userAns - correctAnswer) <= 1) {
+        feedback.style.color = '#16a34a';
+        feedback.innerText = '🎉 ถูกต้องครับ! เก่งมาก';
+      } else {
+        feedback.style.color = '#dc2626';
+        feedback.innerText = `❌ ยังไม่ถูกต้อง ลองใหม่อีกครั้งนะครับ (คำตอบที่ถูกคือประมาณ ${correctAnswer})`;
+      }
+    }
+
+    window.onload = generateQuiz;
+  </script>
+</body>
+</html>
